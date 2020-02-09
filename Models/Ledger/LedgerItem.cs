@@ -1,8 +1,9 @@
 using System;
+using savaglow_backend.Models.Interfaces;
 
 namespace Savaglow.Models.Ledger
 {
-    public class LedgerItem
+    public class LedgerItem : ILedgerItem
     {
         public int Id { get; set; }
         public DateTime CreatedAt { get; set; }

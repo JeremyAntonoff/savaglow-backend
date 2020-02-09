@@ -4,6 +4,8 @@ using System.Threading.Tasks;
 using Savaglow.Data.Interfaces;
 using Savaglow.Models.Ledger;
 using Microsoft.EntityFrameworkCore;
+using System;
+using savaglow_backend.Helpers;
 
 namespace Savaglow.Data.Repositories
 {
@@ -44,14 +46,42 @@ namespace Savaglow.Data.Repositories
             return recurringLedgerItem;
         }
 
-        public async Task<IEnumerable<LedgerItem>> GetLedgerForUser(string userId)
+        public async Task<IEnumerable<LedgerItem>> GetLedgerForUser(string userId, DateTime? date)
         {
-            var ledger = await _context.LedgerItems.Where(i => i.UserId == userId).ToListAsync();
-            return ledger;
+            if (date != null)
+            {
+                DateTime dateToMatch = (DateTime)date;
+                DateTime endOfMonth = dateToMatch.AddMonths(1);
+                return await _context.LedgerItems.Where(i => i.UserId == userId).Where(x => x.TransactionDate >= dateToMatch && x.TransactionDate <= endOfMonth).ToListAsync();
+            }
+            else
+            {
+                var firstDay = new DateTime(DateTime.Now.Year, DateTime.Now.Month, 1);
+                var lastDayOfMonth = firstDay.AddMonths(1).AddDays(-1);
+                return await _context.LedgerItems.Where(i => i.UserId == userId && (i.TransactionDate >= firstDay && i.TransactionDate <= lastDayOfMonth)).ToListAsync();
+            }
         }
 
-        public async Task<IEnumerable<RecurringLedgerItem>> GetRecurringLedgerForUser(string userId)
+        public async Task<IEnumerable<RecurringLedgerItem>> GetRecurringLedgerForUser(string userId, DateTime? date)
         {
+
+            if (date != null)
+            {
+                DateTime dateToMatch = (DateTime)date;
+                DateTime endOfMonth = dateToMatch.AddMonths(1);
+
+                var recurringPosted = await _context.RecurringLedgerItems.Where(x => x.RecurringLastModified == null ?
+                x.RecurringStartDate >= dateToMatch && x.RecurringStartDate <= endOfMonth
+                : x.RecurringLastModified >= dateToMatch && x.RecurringLastModified <= endOfMonth)
+                .ToListAsync();
+
+                var recurringNotPosted = await _context.RecurringLedgerItems.Where(x => x.RecurringLastModified.Value.AddDays(x.RecurringFrequency) >= dateToMatch
+                && x.RecurringLastModified.Value.AddDays(x.RecurringFrequency) <= endOfMonth).ToListAsync();
+
+                var results = recurringPosted.Concat(recurringNotPosted);
+                return results;
+
+            }
             var recurringLedger = await _context.RecurringLedgerItems.Where(i => i.UserId == userId).ToListAsync();
             return recurringLedger;
         }

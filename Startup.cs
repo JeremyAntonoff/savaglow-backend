@@ -16,6 +16,10 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
+using Hangfire.SQLite;
+using Hangfire;
+using savaglow_backend.Helpers;
+using Newtonsoft.Json;
 
 namespace Savaglow
 {
@@ -31,7 +35,7 @@ namespace Savaglow
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddDbContext<DataContext>(c => c.UseSqlite(Configuration.GetConnectionString("SqliteConnection")));
+            services.AddDbContext<DataContext>(c => c.UseSqlite(Configuration.GetConnectionString("SqliteConnection2")));
             services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<ILedgerRepository, LedgerRepository>();
@@ -63,9 +67,8 @@ namespace Savaglow
                     ValidateAudience = false
                 };
             });
-
             services.AddCors();
-            services.AddControllers(options => 
+            services.AddControllers(options =>
             {
                 var policy = new AuthorizationPolicyBuilder()
                 .RequireAuthenticatedUser()
@@ -77,16 +80,40 @@ namespace Savaglow
             {
                 opt.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore;
             });
+            JsonConvert.DefaultSettings = () => new JsonSerializerSettings
+            {
+                Formatting = Newtonsoft.Json.Formatting.Indented,
+                ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore
+            };
+            var connection = Configuration.GetConnectionString("SqliteConnection") + ";";
+            services.AddHangfire(configuration => configuration
+            .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
+            .UseSimpleAssemblyNameTypeSerializer()
+            .UseRecommendedSerializerSettings()
+            .UseSQLiteStorage(connection, new SQLiteStorageOptions()));
+
+            services.AddHangfireServer();
+
+
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
+        public void Configure(IApplicationBuilder app, DataContext context, IBackgroundJobClient backgroundJobs, IWebHostEnvironment env)
         {
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
             }
             // app.UseHttpsRedirection();
+
+            //Background Jobs
+            var options = new SQLiteStorageOptions();
+            var hangFireServerOptions = new BackgroundJobServerOptions { WorkerCount = 1 };
+
+            app.UseHangfireDashboard();
+
+            RecurringJob.AddOrUpdate<JobsHelper>(x => x.UpdateRecurringLedgerItems(), Cron.Minutely);
+
             app.UseCors(o => o.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
 
             app.UseRouting();

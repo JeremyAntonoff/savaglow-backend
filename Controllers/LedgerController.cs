@@ -32,13 +32,13 @@ namespace Savaglow.Controllers
             }
             if (ledgerParams.Recurring)
             {
-                var ledgerItems = await _ledgerRepo.GetRecurringLedgerForUser(userId);
+                var ledgerItems = await _ledgerRepo.GetRecurringLedgerForUser(userId, null);
                 var ledgerItemsToReturn = _mapper.Map<RecurringLedgerItemDto[]>(ledgerItems);
                 return Ok(ledgerItemsToReturn);
             }
             else
             {
-                var recurringLedgerItems = await _ledgerRepo.GetLedgerForUser(userId);
+                var recurringLedgerItems = await _ledgerRepo.GetLedgerForUser(userId, null);
                 var ledgerItemsToReturn = _mapper.Map<LedgerItemDto[]>(recurringLedgerItems);
                 return Ok(ledgerItemsToReturn);
             }

@@ -17,7 +17,7 @@ namespace Savaglow.Helpers
             CreateMap<LedgerItemCreationDto, RecurringLedgerItem>()
             .ForMember(i => i.RecurringFrequency, opt => opt.MapFrom(i => i.Recurring.RecurringFrequency))
             .ForMember(i => i.RecurringStartDate, opt => opt.MapFrom(i => i.Recurring.RecurringStartDate))
-            .ForMember(i => i.RecurringLastModified, opt => opt.Equals(null));
+            .ForMember(i => i.RecurringLastModified, opt => opt.MapFrom(i => i.Recurring.RecurringLastModified));
             CreateMap<LedgerItem, LedgerItemDto>()
             .ForMember(i => i.TransactionType, opt => opt.MapFrom(i => Enum.GetName(typeof(TransactionType), i.TransactionType)));
             CreateMap<RecurringLedgerItem, RecurringLedgerItemDto>()

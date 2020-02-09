@@ -6,6 +6,9 @@
   <ItemGroup>&#xD;
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="Hangfire.AspNetCore" Version="1.7.8"/>
+    <PackageReference Include="Hangfire.Core" Version="1.7.8"/>
+    <PackageReference Include="Hangfire.SQLite" Version="1.4.2"/>
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="3.0.0"/>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="3.0.0"/>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="3.0.0"/>
@@ -13,5 +16,6 @@
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="3.0.0"/>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="3.0.0"/>
     <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="7.0.0"/>
+    <PackageReference Include="DocumentFormat.OpenXml" Version="2.8.1"/>
   </ItemGroup>
 </Project>
