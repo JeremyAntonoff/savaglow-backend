@@ -13,7 +13,7 @@ namespace NomoBucket.API.Dtos
         public string UserName { get; set; }
         
         [Required]
-        [StringLength(8, MinimumLength = 7, ErrorMessage = "Password must be between 4 and 8 characters")]
+        [StringLength(20, MinimumLength = 7, ErrorMessage = "Password must be at least 7 characters")]
         public string Password { get; set; }
         public DateTime LastActive { get; set; }
         public DateTime Created { get; set; }
