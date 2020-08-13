@@ -38,3 +38,4 @@ msbuild.wrn
 
 #database
 Savaglow.db
+appsettings.json

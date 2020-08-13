@@ -20,6 +20,11 @@ using Hangfire.SQLite;
 using Hangfire;
 using savaglow_backend.Helpers;
 using Newtonsoft.Json;
+using Hangfire.Storage;
+using Microsoft.Data.Sqlite;
+using Hangfire.Dashboard;
+using System.Linq;
+using Hangfire.MySql.Core;
 
 namespace Savaglow
 {
@@ -35,7 +40,7 @@ namespace Savaglow
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddDbContext<DataContext>(c => c.UseSqlite(Configuration.GetConnectionString("SqliteConnection2")));
+            services.AddDbContext<DataContext>(c => c.UseMySql(Configuration.GetConnectionString("DefaultConnection")));
             services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
             services.AddScoped<IUserRepository, UserRepository>();
             services.AddScoped<ILedgerRepository, LedgerRepository>();
@@ -85,17 +90,23 @@ namespace Savaglow
                 Formatting = Newtonsoft.Json.Formatting.Indented,
                 ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore
             };
-            var connection = Configuration.GetConnectionString("SqliteConnection") + ";";
+            var connection = Configuration.GetConnectionString("DefaultConnection") + ";";
             services.AddHangfire(configuration => configuration
             .SetDataCompatibilityLevel(CompatibilityLevel.Version_170)
             .UseSimpleAssemblyNameTypeSerializer()
             .UseRecommendedSerializerSettings()
-            .UseSQLiteStorage(connection, new SQLiteStorageOptions()));
+            .UseStorage(new MySqlStorage(connection)));
 
             services.AddHangfireServer();
-
-
         }
+        public class MyAuthorizationFilter : IDashboardAuthorizationFilter
+        {
+            public bool Authorize(DashboardContext context)
+            {
+                return true;
+            }
+        }
+
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, DataContext context, IBackgroundJobClient backgroundJobs, IWebHostEnvironment env)
@@ -104,21 +115,42 @@ namespace Savaglow
             {
                 app.UseDeveloperExceptionPage();
             }
+
+     
+            
+            using (var serviceScope = app.ApplicationServices.GetRequiredService<IServiceScopeFactory>()
+                   .CreateScope())
+            {
+                serviceScope.ServiceProvider.GetService<DataContext>()
+                    .Database.Migrate();
+            }
             // app.UseHttpsRedirection();
 
             //Background Jobs
             var options = new SQLiteStorageOptions();
             var hangFireServerOptions = new BackgroundJobServerOptions { WorkerCount = 1 };
 
-            app.UseHangfireDashboard();
 
-            RecurringJob.AddOrUpdate<JobsHelper>(x => x.UpdateRecurringLedgerItems(), Cron.Minutely);
+
+            using (var hangFireConnection = Hangfire.JobStorage.Current.GetConnection())
+            {
+                foreach (var recurringJob in hangFireConnection.GetRecurringJobs())
+                {
+                    RecurringJob.RemoveIfExists(recurringJob.Id);
+                }
+                RecurringJob.AddOrUpdate<JobsHelper>(x => x.UpdateRecurringLedgerItems(), Cron.Minutely);
+
+            }
+            // app.UseHangfireDashboard("/hangfire", new DashboardOptions
+            // {
+            //     Authorization = new[] { new MyAuthorizationFilter() }
+            // });
+
 
             app.UseCors(o => o.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
-
             app.UseRouting();
-            app.UseAuthentication();
 
+            app.UseAuthentication();
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
