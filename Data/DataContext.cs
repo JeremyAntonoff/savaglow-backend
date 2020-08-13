@@ -11,7 +11,8 @@ namespace Savaglow.Data
     public class DataContext : IdentityDbContext<User, Role, string, IdentityUserClaim<string>, UserRole, IdentityUserLogin<string>, IdentityRoleClaim<string>, IdentityUserToken<string>>
     {
 
-        public DataContext(DbContextOptions options) : base(options) { }
+        public DataContext(DbContextOptions options) : base(options) { 
+        }
         public DbSet<LedgerItem> LedgerItems { get; set; }
         public DbSet<RecurringLedgerItem> RecurringLedgerItems { get; set; }
 
